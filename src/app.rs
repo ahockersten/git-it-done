@@ -6,7 +6,7 @@ use leptos_router::{
 };
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -50,6 +50,19 @@ pub fn App() -> impl IntoView {
     }
 }
 
+fn read_and_convert_markdown(path: &Path) -> Result<String, String> {
+    match fs::read_to_string(path) {
+        Ok(text) => {
+            let html = markdown::to_html(&text);
+            // Consider using a more robust HTML parser/manipulator if complexity grows
+            let html = html.replace("<li>[ ] ", "<li><input type=\"checkbox\"> ");
+            let html = html.replace("<li>[x] ", "<li><input type=\"checkbox\" checked> ");
+            Ok(html)
+        }
+        Err(e) => Err(format!("Error reading file {:?}: {}", path, e)),
+    }
+}
+
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
@@ -62,13 +75,13 @@ fn HomePage() -> impl IntoView {
         let mut path = PathBuf::from(data_dir);
         path.push("Handla.md");
 
-        match fs::read_to_string(&path) {
-            Ok(text) => markdown::to_html(&text),
-            Err(e) => format!("Error reading file {:?}: {}", path, e),
+        match read_and_convert_markdown(&path) {
+            Ok(html) => html,
+            Err(e) => e, // Display the error message directly
         }
     };
 
     view! {
-        {content}
+        <div inner_html=content()></div>
     }
 }
