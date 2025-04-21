@@ -1,21 +1,24 @@
 @import "tailwindcss";
 
 h1 {
-	@apply text-2xl font-bold;
+    @apply text-2xl font-bold;
 }
 h2 {
-	@apply text-xl font-semibold;
+    @apply text-xl font-semibold;
 }
 h3 {
-	@apply text-lg font-semibold;
+    @apply text-lg font-semibold;
 }
 h4 {
-	@apply text-lg font-semibold;
+    @apply text-base font-semibold;
 }
 h5 {
-	@apply text-lg font-semibold;
+    @apply text-sm font-semibold;
+}
+h6 {
+    @apply text-sm font-medium;
 }
 
 li {
-	@apply flex gap-1;
+    @apply flex gap-1;
 }
