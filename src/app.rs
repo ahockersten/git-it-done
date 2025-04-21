@@ -10,8 +10,18 @@ use markdown::mdast;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use serde::{Deserialize, Serialize}; // Import Serialize and Deserialize
 
-#[server]
+// Explicitly define the struct for the server function arguments
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct UpdateCheckboxStatus {
+    file_path: String,
+    line_number: usize,
+    is_checked: bool,
+}
+
+
+#[server(UpdateCheckboxStatus)] // Reference the explicit struct
 async fn update_checkbox_status(
     file_path: String,
     line_number: usize,
@@ -269,6 +279,7 @@ fn get_text_from_children(children: &[mdast::Node]) -> String {
 
 // Helper struct to manage rendering state and recursion
 struct MarkdownRenderer {
+    // Ensure this uses the explicitly defined struct
     update_action: ServerAction<UpdateCheckboxStatus>,
 }
 
@@ -369,6 +380,7 @@ impl MarkdownRenderer {
 #[component]
 fn HomePage() -> impl IntoView {
     // Action to update checkbox status on the server
+    // Ensure this uses the explicitly defined struct
     let update_action = ServerAction::<UpdateCheckboxStatus>::new();
 
     // Signal to hold the current AST, re-parsed on action success
