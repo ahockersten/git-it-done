@@ -1,4 +1,5 @@
-use git2::{Commit, IndexAddOption, Repository, Signature, Time};
+#[cfg(feature = "ssr")]
+use git2::{Commit, Repository, Signature};
 use leptos::logging;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -136,18 +137,21 @@ async fn update_checkbox_status(
             }
             logging::log!("File updated successfully: {:?}", path);
 
-            // Commit the changes using git2
-            let repo_path_str = env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
-            let repo_path = Path::new(&repo_path_str);
-            match commit_changes(repo_path, &file_path, line_number, is_checked) {
-                Ok(_) => logging::log!("Changes committed successfully for {:?}", path),
-                Err(e) => {
-                    // Log the error but don't necessarily fail the whole operation,
-                    // as the file write was successful.
-                    logging::error!("Failed to commit changes for {:?}: {}", path, e);
-                    // Optionally, return a specific error or handle it differently
-                    // For now, we just log it.
-                    // return Err(ServerFnError::ServerError(format!("Failed to commit changes: {}", e)));
+            // Commit the changes using git2 - only on the server
+            #[cfg(feature = "ssr")]
+            {
+                let repo_path_str = env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
+                let repo_path = Path::new(&repo_path_str);
+                match commit_changes(repo_path, &file_path, line_number, is_checked).await {
+                    Ok(_) => logging::log!("Changes committed successfully for {:?}", path),
+                    Err(e) => {
+                        // Log the error but don't necessarily fail the whole operation,
+                        // as the file write was successful.
+                        logging::error!("Failed to commit changes for {:?}: {}", path, e);
+                        // Optionally, return a specific error or handle it differently
+                        // For now, we just log it.
+                        // return Err(ServerFnError::ServerError(format!("Failed to commit changes: {}", e)));
+                    }
                 }
             }
         } else {
@@ -164,28 +168,27 @@ async fn update_checkbox_status(
     Ok(())
 }
 
-// Helper function to commit changes using git2
-fn commit_changes(
+// Helper function to commit changes using git2 - only on the server
+#[cfg(feature = "ssr")]
+async fn commit_changes(
     repo_path: &Path,
     file_path_relative: &str,
     line_number: usize,
     is_checked: bool,
 ) -> Result<(), git2::Error> {
-    // Open the repository
     let repo = Repository::open(repo_path)?;
     logging::log!("Opened git repository at: {:?}", repo_path);
 
-    // Stage the file
     let mut index = repo.index()?;
     index.add_path(Path::new(file_path_relative))?;
-    index.write()?; // Write the index changes to disk
-    let oid = index.write_tree()?; // Write the tree object
+    index.write()?;
+    let oid = index.write_tree()?;
     logging::log!("Staged file: {}", file_path_relative);
 
     // Create the commit
     let tree = repo.find_tree(oid)?;
     let parent_commit = find_head_commit(&repo)?;
-    let signature = Signature::now("Git Note Taking App", "app@example.com")?; // TODO: Configure user/email
+    let signature = Signature::now("Git Note Taking App", "git-note-taking@hockersten.se")?;
 
     let message = format!(
         "Update checkbox status in {} line {}: {}",
@@ -195,12 +198,12 @@ fn commit_changes(
     );
 
     repo.commit(
-        Some("HEAD"),      // Point HEAD to our new commit
-        &signature,        // Author
-        &signature,        // Committer
-        &message,          // Commit message
-        &tree,             // Tree
-        &[&parent_commit], // Parent commit
+        Some("HEAD"),
+        &signature,
+        &signature,
+        &message,
+        &tree,
+        &[&parent_commit],
     )?;
 
     logging::log!("Committed changes with message: {}", message);
@@ -208,7 +211,7 @@ fn commit_changes(
     Ok(())
 }
 
-// Helper function to find the HEAD commit
+#[cfg(feature = "ssr")]
 fn find_head_commit(repo: &Repository) -> Result<Commit, git2::Error> {
     let obj = repo.head()?.resolve()?.peel(git2::ObjectType::Commit)?;
     obj.into_commit()
