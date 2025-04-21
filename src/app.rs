@@ -8,20 +8,19 @@ use leptos_router::{
 };
 use markdown::mdast;
 use std::env;
-use std::fs;
-use std::path::PathBuf;
-use serde::{Deserialize, Serialize}; // Import Serialize and Deserialize
+use serde::{Deserialize, Serialize};
 
-// Explicitly define the struct for the server function arguments
+// Without this the size of the arguments given to update_checkbox_status
+// are not known at compile time
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct UpdateCheckboxStatus {
+pub struct UpdateCheckboxStatusArgs {
     file_path: String,
     line_number: usize,
     is_checked: bool,
-}
+ }
 
 
-#[server(UpdateCheckboxStatus)] // Reference the explicit struct
+#[server(UpdateCheckboxStatus)]
 async fn update_checkbox_status(
     file_path: String,
     line_number: usize,
@@ -29,12 +28,14 @@ async fn update_checkbox_status(
 ) -> Result<(), ServerFnError> {
     use std::fs::OpenOptions;
     use std::io::{BufRead, BufReader, Seek, SeekFrom, Write};
+    use std::path::PathBuf;
 
     // Construct the full path relative to the server execution context
     // Ensure this logic matches how the file path is determined in HomePage
     let base_dir = env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let mut path = PathBuf::from(base_dir);
-    path.push(&file_path); // Use the relative path passed from the client
+    // Use the relative path passed from the client
+    path.push(&file_path);
 
     logging::log!(
         "Attempting to update file: {:?}, line: {}, checked: {}",
@@ -59,8 +60,7 @@ async fn update_checkbox_status(
                 ));
             }
         }
-        // Handle cases where canonicalization fails
-        (Err(e), _) => { // Error canonicalizing data dir
+        (Err(e), _) => {
             logging::error!(
                 "Failed to canonicalize data directory path: {}",
                 e
@@ -70,7 +70,7 @@ async fn update_checkbox_status(
                 e
             )));
         }
-        (_, Err(e)) => { // Error canonicalizing file path
+        (_, Err(e)) => {
             logging::error!(
                 "Failed to canonicalize file path ({:?}): {}",
                 path,
@@ -83,12 +83,11 @@ async fn update_checkbox_status(
         }
     }
 
-    // Open the file for reading and writing
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
         .open(&path)
-        .map_err(|e| -> ServerFnError { // Specify the closure's return type
+        .map_err(|e| -> ServerFnError {
             ServerFnError::ServerError(format!("Failed to open file {:?}: {}", path, e))
         })?;
 
@@ -125,19 +124,16 @@ async fn update_checkbox_status(
                 }
             }
         } else {
-            // Line doesn't seem to be a checkbox item, log and ignore for now
             logging::warn!(
                 "Line {} in {:?} does not contain a checkbox pattern: {}",
                 line_number,
                 path,
                 original_line
             );
-            // Optionally return an error here if strict matching is required
-            // return Err(ServerFnError::ServerError(format!("Line {} is not a checkbox item", line_number)));
+            return Err(ServerFnError::ServerError(format!("Line {} is not a checkbox item", line_number)));
         }
 
         if modified {
-            // Write the modified lines back to the file
             file.seek(SeekFrom::Start(0))?;
             file.set_len(0)?; // Truncate the file
             for updated_line in lines {
@@ -171,7 +167,6 @@ async fn get_markdown_content(relative_path: String) -> Result<(String, String),
     use std::path::PathBuf;
     use leptos::logging;
 
-    // Construct the full path relative to the server execution context
     let base_dir = env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let mut path = PathBuf::from(base_dir);
     path.push(&relative_path);
@@ -209,9 +204,8 @@ async fn get_markdown_content(relative_path: String) -> Result<(String, String),
         }
     }
 
-    // Read the file content
     match fs::read_to_string(&path) {
-        Ok(content) => Ok((relative_path, content)), // Return relative path and content
+        Ok(content) => Ok((relative_path, content)),
         Err(e) => {
             logging::error!("Error reading file {:?}: {}", path, e);
             Err(ServerFnError::ServerError(format!(
@@ -284,7 +278,6 @@ struct MarkdownRenderer {
 }
 
 impl MarkdownRenderer {
-    // Recursive function to render markdown AST node to Leptos View
     fn render_node(&self, node: &mdast::Node, file_path: &str) -> AnyView {
         match node {
             mdast::Node::Root(root) => {
@@ -387,8 +380,8 @@ fn HomePage() -> impl IntoView {
     // We need to re-read and re-parse the file when the action completes
     // to reflect the change visually.
     // Use a Resource that calls the server function to fetch content.
-    let file_content_resource: Resource<_, Result<(String, String), ServerFnError>> = Resource::new(
-        move || update_action.version().get(), // Re-run when action version changes
+    let file_content_resource: Resource<std::result::Result<(String, String), ServerFnError>> = Resource::new(
+        move || update_action.version().get(),
         |_| async move {
             // Always call the server function to get content
             get_markdown_content("Handla.md".to_string()).await
@@ -397,33 +390,26 @@ fn HomePage() -> impl IntoView {
 
     view! {
          <Suspense fallback=|| view! { <p>"Loading..."</p> }>
-            { move || file_content_resource.get().map(|server_result| {
-                // server_result is Result<(String, String), ServerFnError>
+            { move || file_content_resource.get().map(|server_result: Result<(String, String), ServerFnError>| {
                 match server_result {
-                    Ok(Ok((file_path, content))) => { // Nested Result: Resource -> ServerFn
-                        // Parse the markdown content received from the server
+                    Ok((file_path, content)) => {
                         match markdown::to_mdast(&content, &markdown::ParseOptions::gfm()) {
                             Ok(ast) => {
-                                // Create the renderer instance inside the reactive scope
                                 let renderer = MarkdownRenderer {
-                                    update_action: update_action.clone(), // Clone action for the renderer
+                                    update_action: update_action.clone()
                                 };
-                                // Call the rendering method
                                 renderer.render_node(&ast, &file_path).into_any()
                             }
                             Err(e) => view! { <p>"Error parsing markdown: "{e.to_string()}</p> }.into_any(),
                         }
                     },
-                    Ok(Err(e)) | Err(e) => { // Handle ServerFnError or Resource loading error
-                         // Log the error for debugging
+                    Err(e) => {
                          logging::error!("Error fetching/reading file: {:?}", e);
-                         // Display a user-friendly error message
                          view! { <p>"Error loading content: "{e.to_string()}</p> }.into_any()
                     }
                 }
             })}
          </Suspense>
-         // Display pending state and errors from the action
          <Show when=move || update_action.pending().get()>
              <p>"Updating..."</p>
          </Show>
