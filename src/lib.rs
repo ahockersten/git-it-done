@@ -1,4 +1,6 @@
 pub mod app;
+mod markdown_renderer;
+mod update_server;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
