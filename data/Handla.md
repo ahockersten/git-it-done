@@ -1,4 +1,5 @@
 # Handla
 
-- [ ] Grejen
-- [ ] Grejtvå
+- [ ] Okryssad
+- [x] Kryssad
+- Ingen checkmark

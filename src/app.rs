@@ -1,3 +1,4 @@
+use leptos::logging;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
@@ -92,9 +93,38 @@ fn render_markdown_ast(node: &mdast::Node) -> AnyView {
                 _ => view! { <h6>{text}</h6> }.into_any(), // Default to h6 for depth > 5
             }
         }
+        mdast::Node::List(list) => {
+            let children = list
+                .children
+                .iter()
+                .map(render_markdown_ast)
+                .collect::<Vec<_>>();
+            if list.ordered {
+                view! { <ol>{children}</ol> }.into_any()
+            } else {
+                view! { <ul>{children}</ul> }.into_any()
+            }
+        }
+        mdast::Node::ListItem(list_item) => {
+            // Render children; list items can contain paragraphs, etc.
+            let children = list_item
+                .children
+                .iter()
+                .map(render_markdown_ast)
+                .collect::<Vec<_>>();
+            let check_item = match list_item.checked {
+                Some(true) => Some(view! { <input type="checkbox" checked=true /> }.into_any()),
+                Some(false) => Some(view! { <input type="checkbox" checked=false /> }.into_any()),
+                None => None,
+            };
+            view! { <li>{check_item}{children}</li> }.into_any()
+        }
         mdast::Node::Text(text) => text.value.clone().into_any(),
         // Handle other node types as needed, returning an empty view for now
-        _ => view! { <></> }.into_any(),
+        _ => {
+            logging::log!("Unhandled node type: {:?}", node.to_string());
+            view! { <></> }.into_any()
+        }
     }
 }
 
@@ -113,7 +143,7 @@ fn HomePage() -> View<impl IntoView> {
         match fs::read_to_string(&path) {
             Ok(text) => {
                 // Parse the markdown text to an AST
-                match markdown::to_mdast(&text, &markdown::ParseOptions::default()) {
+                match markdown::to_mdast(&text, &markdown::ParseOptions::gfm()) {
                     Ok(ast) => render_markdown_ast(&ast),
                     Err(e) => view! { <p>"Error parsing markdown: "{e.to_string()}</p> }.into_any(),
                 }
