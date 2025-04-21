@@ -34,7 +34,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/git-note-taking.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="Git note taking"/>
 
         // content for this welcome page
         <Router>
@@ -50,12 +50,7 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let count = RwSignal::new(0);
-    let on_click = move |_| *count.write() += 1;
-
     view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        markdown::to_html("## Hello, *world*!")
     }
 }
