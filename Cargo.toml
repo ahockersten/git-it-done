@@ -18,6 +18,7 @@ wasm-bindgen = { version = "=0.2.100", optional = true }
 markdown = { version = "1.0.0-alpha.23", features = ["serde"] }
 web-sys = { version = "0.3", features = ["Event"] }
 serde = "1.0.219"
+git2 = { version = "0.19", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
@@ -28,6 +29,7 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
+    "dep:git2",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
