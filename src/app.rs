@@ -112,7 +112,7 @@ async fn update_checkbox_status(
             if is_checked {
                 if let Some(pos) = line.find("- [ ] ") {
                     // Find the actual position in the original line
-                    line.replace_range(pos..(pos + 5), "- [x] ");
+                    line.replace_range(pos..(pos + 6), "- [x] ");
                     modified = true;
                 }
             }
@@ -120,7 +120,7 @@ async fn update_checkbox_status(
             if !is_checked {
                 if let Some(pos) = line.find("- [x] ") {
                     // Find the actual position in the original line
-                    line.replace_range(pos..(pos + 5), "- [ ] ");
+                    line.replace_range(pos..(pos + 6), "- [ ] ");
                     modified = true;
                 }
             }
