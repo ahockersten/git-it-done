@@ -63,7 +63,7 @@ fn get_text_from_children(children: &[mdast::Node]) -> String {
 }
 
 // Function to render markdown AST node to Leptos View
-fn render_markdown_ast(node: &mdast::Node) -> View {
+fn render_markdown_ast(node: &mdast::Node) -> AnyView {
     match node {
         mdast::Node::Root(root) => {
             let children = root
@@ -71,7 +71,7 @@ fn render_markdown_ast(node: &mdast::Node) -> View {
                 .iter()
                 .map(render_markdown_ast)
                 .collect::<Vec<_>>();
-            view! { <>{children}</> }.into_view()
+            view! { <>{children}</> }.into_any()
         }
         mdast::Node::Paragraph(paragraph) => {
             let children = paragraph
@@ -79,29 +79,29 @@ fn render_markdown_ast(node: &mdast::Node) -> View {
                 .iter()
                 .map(render_markdown_ast)
                 .collect::<Vec<_>>();
-            view! { <p>{children}</p> }.into_view()
+            view! { <p>{children}</p> }.into_any()
         }
         mdast::Node::Heading(heading) => {
             let text = get_text_from_children(&heading.children);
             match heading.depth {
-                1 => view! { <h1>{text}</h1> }.into_view(),
-                2 => view! { <h2>{text}</h2> }.into_view(),
-                3 => view! { <h3>{text}</h3> }.into_view(),
-                4 => view! { <h4>{text}</h4> }.into_view(),
-                5 => view! { <h5>{text}</h5> }.into_view(),
-                _ => view! { <h6>{text}</h6> }.into_view(), // Default to h6 for depth > 5
+                1 => view! { <h1>{text}</h1> }.into_any(),
+                2 => view! { <h2>{text}</h2> }.into_any(),
+                3 => view! { <h3>{text}</h3> }.into_any(),
+                4 => view! { <h4>{text}</h4> }.into_any(),
+                5 => view! { <h5>{text}</h5> }.into_any(),
+                _ => view! { <h6>{text}</h6> }.into_any(), // Default to h6 for depth > 5
             }
         }
-        mdast::Node::Text(text) => text.value.clone().into_view(),
+        mdast::Node::Text(text) => text.value.clone().into_any(),
         // Handle other node types as needed, returning an empty view for now
-        _ => view! { <></> }.into_view(),
+        _ => view! { <></> }.into_any(),
     }
 }
 
 /// Renders the home page of your application.
 #[component]
-fn HomePage() -> impl IntoView {
-    let content = move || -> impl IntoView {
+fn HomePage() -> View<impl IntoView> {
+    let content = move || -> AnyView {
         let data_dir = match env::var("DATA_DIR") {
             Ok(dir) => dir,
             // Default to "data" if not set
@@ -115,10 +115,10 @@ fn HomePage() -> impl IntoView {
                 // Parse the markdown text to an AST
                 match markdown::to_mdast(&text, &markdown::ParseOptions::default()) {
                     Ok(ast) => render_markdown_ast(&ast),
-                    Err(e) => view! { <p>"Error parsing markdown: "{e.to_string()}</p> }.into_view(),
+                    Err(e) => view! { <p>"Error parsing markdown: "{e.to_string()}</p> }.into_any(),
                 }
             }
-            Err(e) => view! { <p>"Error reading file "{path.to_string_lossy().to_string()}": "{e.to_string()}</p> }.into_view(),
+            Err(e) => view! { <p>"Error reading file "{path.to_string_lossy().to_string()}": "{e.to_string()}</p> }.into_any(),
         }
     };
 
