@@ -7,8 +7,8 @@ use leptos_router::{
     StaticSegment,
 };
 use markdown::mdast;
-use std::env;
 use serde::{Deserialize, Serialize};
+use std::env;
 
 // Without this the size of the arguments given to update_checkbox_status
 // are not known at compile time
@@ -17,8 +17,7 @@ pub struct UpdateCheckboxStatusArgs {
     file_path: String,
     line_number: usize,
     is_checked: bool,
- }
-
+}
 
 #[server(UpdateCheckboxStatus)]
 async fn update_checkbox_status(
@@ -61,21 +60,14 @@ async fn update_checkbox_status(
             }
         }
         (Err(e), _) => {
-            logging::error!(
-                "Failed to canonicalize data directory path: {}",
-                e
-            );
+            logging::error!("Failed to canonicalize data directory path: {}", e);
             return Err(ServerFnError::ServerError(format!(
                 "Data directory path validation failed: {}",
                 e
             )));
         }
         (_, Err(e)) => {
-            logging::error!(
-                "Failed to canonicalize file path ({:?}): {}",
-                path,
-                e
-            );
+            logging::error!("Failed to canonicalize file path ({:?}): {}", path, e);
             return Err(ServerFnError::ServerError(format!(
                 "File path validation failed for {:?}: {}",
                 path, e
@@ -130,7 +122,10 @@ async fn update_checkbox_status(
                 path,
                 original_line
             );
-            return Err(ServerFnError::ServerError(format!("Line {} is not a checkbox item", line_number)));
+            return Err(ServerFnError::ServerError(format!(
+                "Line {} is not a checkbox item",
+                line_number
+            )));
         }
 
         if modified {
@@ -159,13 +154,12 @@ async fn update_checkbox_status(
     Ok(())
 }
 
-
 #[server]
 async fn get_markdown_content(relative_path: String) -> Result<(String, String), ServerFnError> {
+    use leptos::logging;
     use std::env;
     use std::fs;
     use std::path::PathBuf;
-    use leptos::logging;
 
     let base_dir = env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let mut path = PathBuf::from(base_dir);
@@ -216,7 +210,6 @@ async fn get_markdown_content(relative_path: String) -> Result<(String, String),
         }
     }
 }
-
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -380,13 +373,14 @@ fn HomePage() -> impl IntoView {
     // We need to re-read and re-parse the file when the action completes
     // to reflect the change visually.
     // Use a Resource that calls the server function to fetch content.
-    let file_content_resource: Resource<std::result::Result<(String, String), ServerFnError>> = Resource::new(
-        move || update_action.version().get(),
-        |_| async move {
-            // Always call the server function to get content
-            get_markdown_content("Handla.md".to_string()).await
-        },
-    );
+    let file_content_resource: Resource<std::result::Result<(String, String), ServerFnError>> =
+        Resource::new(
+            move || update_action.version().get(),
+            |_| async move {
+                // Always call the server function to get content
+                get_markdown_content("Handla.md".to_string()).await
+            },
+        );
 
     view! {
          <Suspense fallback=|| view! { <p>"Loading..."</p> }>
