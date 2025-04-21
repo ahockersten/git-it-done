@@ -4,6 +4,9 @@ use leptos_router::{
     components::{Route, Router, Routes},
     StaticSegment,
 };
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -50,7 +53,22 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
+    let content = move || -> String {
+        let data_dir = match env::var("DATA_DIR") {
+            Ok(dir) => dir,
+            // Default to "data" if not set
+            Err(_) => "data".to_string(),
+        };
+        let mut path = PathBuf::from(data_dir);
+        path.push("Handla.md");
+
+        match fs::read_to_string(&path) {
+            Ok(text) => markdown::to_html(&text),
+            Err(e) => format!("Error reading file {:?}: {}", path, e),
+        }
+    };
+
     view! {
-        markdown::to_html("## Hello, *world*!")
+        {content}
     }
 }
