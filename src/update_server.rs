@@ -188,7 +188,7 @@ async fn commit_changes(
     // Create the commit
     let tree = repo.find_tree(oid)?;
     let parent_commit = find_head_commit(&repo)?;
-    let signature = Signature::now("Git Note Taking App", "git-note-taking@hockersten.se")?;
+    let signature = Signature::now("Git Note Taking App", "git-it-done@hockersten.se")?;
 
     let message = format!(
         "Update checkbox status in {} line {}: {}",
