@@ -12,7 +12,7 @@ cargo leptos build --release
 
 Will generate your server binary in target/server/release and your site package in target/site
 
-## Testing Your Project
+## Testing
 
 ```bash
 cargo leptos end-to-end
@@ -22,31 +22,14 @@ cargo leptos end-to-end
 cargo leptos end-to-end --release
 ```
 
-Cargo-leptos uses Playwright as the end-to-end test tool.
-Tests are located in end2end/tests directory.
+## Building and Running with Docker
 
-## Executing a Server on a Remote Machine Without the Toolchain
-
-After running a `cargo leptos build --release` the minimum files needed are:
-
-1. The server binary located in `target/server/release`
-2. The `site` directory and all files within located in `target/site`
-
-Copy these files to your remote server. The directory structure should be:
-
-```text
-git-it-done
-site/
+```bash
+docker build .
 ```
 
-Set the following environment variables (updating for your project as needed):
+## Run the Docker container locally
 
-```sh
-export LEPTOS_OUTPUT_NAME="git-it-done"
-export LEPTOS_SITE_ROOT="site"
-export LEPTOS_SITE_PKG_DIR="pkg"
-export LEPTOS_SITE_ADDR="127.0.0.1:3000"
-export LEPTOS_RELOAD_PORT="3001"
+```bash
+docker run -p 8080:8080 -e PORT=8080 git-it-done
 ```
-
-Finally, run the server binary.
